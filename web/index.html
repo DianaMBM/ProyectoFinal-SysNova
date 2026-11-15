@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SysNova · Gestor de procesos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+<div class="app">
+  <aside class="lateral">
+    <div class="marca">
+      <div><strong>SysNova</strong><span>Gestor de procesos y recursos</span></div>
+    </div>
+    <nav id="nav">
+      <button data-seccion="procesos" class="activo">Procesos</button>
+      <button data-seccion="planificacion">Planificación</button>
+      <button data-seccion="memoria">Memoria</button>
+      <button data-seccion="comunicacion">Comunicación</button>
+      <button data-seccion="sincronizacion">Sincronización</button>
+      <button data-seccion="monitoreo">Monitoreo</button>
+      <button data-seccion="excepciones">Excepciones</button>
+    </nav>
+    <p class="ultimo" id="ultimoEvento">Conectando con el simulador…</p>
+  </aside>
+
+  <main>
+    <header class="franja" aria-live="polite">
+      <div class="dato reloj"><span>Reloj</span><strong id="fReloj">0</strong></div>
+      <div class="dato"><span>En CPU</span><strong id="fCpu">Ociosa</strong></div>
+      <div class="dato memoriaMini">
+        <span>Memoria</span>
+        <div class="barra"><i id="fMemBarra"></i></div>
+        <small id="fMemTexto">—</small>
+      </div>
+      <div class="estados" id="fEstados"></div>
+    </header>
+
+    <!-- ===================== PROCESOS ===================== -->
+    <section id="procesos" class="seccion visible">
+      <div class="encabezado">
+        <h1>Procesos</h1>
+        <p>Cree procesos, cargue un escenario o importe un archivo. Haga clic en una fila para ver su PCB.</p>
+      </div>
+
+      <div class="herramientas">
+        <label>Escenario
+          <select id="escenario">
+            <option value="referencia">Referencia clásica (P1–P4)</option>
+            <option value="es">Con entrada y salida</option>
+            <option value="memoria">Memoria y recursos</option>
+            <option value="fragmentacion">Fragmentación externa</option>
+          </select>
+        </label>
+        <button class="sec" id="btnEscenario">Cargar escenario</button>
+        <span class="sep"></span>
+        <label>Cantidad <input type="number" id="cantAleatorios" value="5" min="1" max="30"></label>
+        <button class="sec" id="btnAleatorios">Generar aleatorios</button>
+        <span class="sep"></span>
+        <label class="archivo sec">Importar CSV o JSON<input type="file" id="archivo" accept=".csv,.json"></label>
+        <button class="peligro" id="btnVaciar">Vaciar procesos</button>
+      </div>
+
+      <div class="dos">
+        <div class="panel">
+          <table class="tabla" id="tablaProcesos">
+            <thead><tr><th>PID</th><th>Nombre</th><th>Prioridad</th><th>Llegada</th><th>Ráfaga</th><th>E/S</th><th>Páginas</th><th>Rec. máx.</th><th>Estado</th><th>Memoria</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <p class="vacio" id="sinProcesos">No hay procesos. Cargue un escenario o cree uno con el formulario.</p>
+        </div>
+
+        <form class="panel formulario" id="formCrear">
+          <h2>Nuevo proceso</h2>
+          <label>Nombre <input name="nombre" value="Proceso" required></label>
+          <div class="fila">
+            <label>Prioridad <input type="number" name="prioridad" value="3" min="1" max="10"></label>
+            <label>Llegada <input type="number" name="llegada" value="0" min="0"></label>
+          </div>
+          <div class="fila">
+            <label>Ráfaga CPU <input type="number" name="rafaga" value="5" min="1"></label>
+            <label>Ráfaga E/S <input type="number" name="es" value="0" min="0"></label>
+          </div>
+          <label>Páginas <input type="number" name="paginas" value="2" min="1"></label>
+          <div class="fila tres">
+            <label>Impresora <input type="number" name="imp" value="0" min="0"></label>
+            <label>Disco <input type="number" name="disco" value="0" min="0"></label>
+            <label>Puerto <input type="number" name="puerto" value="0" min="0"></label>
+          </div>
+          <p class="nota">Número mayor = más prioridad. Los recursos son el máximo que reservará al ser admitido.</p>
+          <button type="submit">Crear proceso</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===================== PLANIFICACIÓN ===================== -->
+    <section id="planificacion" class="seccion">
+      <div class="encabezado">
+        <h1>Planificación de CPU</h1>
+        <p>Ejecute la carga paso a paso o de corrido, y compare los cinco algoritmos con la misma carga.</p>
+      </div>
+
+      <div class="herramientas">
+        <label>Algoritmo <select id="algoritmo"></select></label>
+        <label>Quantum <input type="number" id="quantum" value="4" min="1"></label>
+        <label>Envejecimiento <input type="number" id="aging" value="2" min="1"></label>
+        <label class="check"><input type="checkbox" id="limitar" checked> Respetar memoria y recursos</label>
+        <label>Velocidad
+          <select id="velocidad">
+            <option value="600">Lenta</option>
+            <option value="250" selected>Normal</option>
+            <option value="80">Rápida</option>
+          </select>
+        </label>
+      </div>
+      <div class="herramientas controles">
+        <button id="btnEjecutar">Ejecutar</button>
+        <button class="sec" id="btnPausa" disabled>Pausa</button>
+        <button class="sec" id="btnPaso">Paso</button>
+        <button class="sec" id="btnReiniciar">Reiniciar</button>
+        <span class="sep"></span>
+        <button class="sec" id="btnComparar">Comparar los 5</button>
+      </div>
+
+      <div class="panel">
+        <div class="titulo-panel">
+          <h2>Diagrama de Gantt</h2>
+          <span id="ganttTitulo" class="sutil">Sin simulación</span>
+        </div>
+        <div class="gantt" id="gantt"><p class="vacio">Pulse Ejecutar o Paso para ver cómo se reparte la CPU.</p></div>
+        <p class="aviso" id="ganttMensaje" hidden></p>
+      </div>
+
+      <div class="metricas" id="metricas"></div>
+
+      <div>
+        <div class="panel">
+          <h2>Métricas por proceso</h2>
+          <table class="tabla" id="tablaMetricas">
+            <thead><tr><th>PID</th><th>Proceso</th><th>Espera</th><th>Retorno</th><th>Respuesta</th><th>Bloqueado</th><th>Inicio</th><th>Fin</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h2>Comparación de algoritmos</h2>
+          <table class="tabla clic" id="tablaComparacion">
+            <thead><tr><th>Algoritmo</th><th>Espera</th><th>Retorno</th><th>Respuesta</th><th>CPU %</th><th>Throughput</th><th>Tiempo</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <p class="vacio" id="sinComparacion">Pulse «Comparar los 5». Haga clic en un algoritmo para ver su Gantt.</p>
+        </div>
+      </div>
+      <p class="nota">Espera = tiempo en Listo. Retorno = fin − llegada. Respuesta = primer despacho − llegada. Utilización = CPU ocupada / tiempo total. Throughput = terminados / tiempo total.</p>
+    </section>
+
+    <!-- ===================== MEMORIA ===================== -->
+    <section id="memoria" class="seccion">
+      <div class="encabezado">
+        <h1>Memoria y recursos</h1>
+        <p>Asignación contigua por páginas de <span id="kbPagina">4</span> KB. Cada color es un proceso.</p>
+      </div>
+
+      <div class="herramientas">
+        <label>Páginas totales <input type="number" id="paginasTotales" min="1" max="512"></label>
+        <button class="sec" id="btnPaginas">Aplicar tamaño</button>
+        <label>Algoritmo
+          <select id="algMemoria">
+            <option value="FIRST_FIT">First Fit</option>
+            <option value="BEST_FIT">Best Fit</option>
+            <option value="WORST_FIT">Worst Fit</option>
+          </select>
+        </label>
+        <span class="sep"></span>
+        <button class="sec" id="btnFragmentacion">Demostrar fragmentación</button>
+      </div>
+
+      <div class="panel">
+        <div class="mapa" id="mapaMemoria"></div>
+        <div class="leyenda" id="statsMemoria"></div>
+      </div>
+
+      <div class="dos parejo">
+        <div class="panel">
+          <h2>Asignar a un proceso</h2>
+          <div class="herramientas plano">
+            <label>Proceso <select class="selProceso" id="memProceso"></select></label>
+            <button id="btnAsignar">Asignar memoria</button>
+            <button class="sec" id="btnLiberar">Liberar memoria</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Recursos del sistema</h2>
+          <div id="recursosBarras"></div>
+          <div class="herramientas plano">
+            <label>Impresora <input type="number" id="rImp" min="0"></label>
+            <label>Disco <input type="number" id="rDisco" min="0"></label>
+            <label>Puerto <input type="number" id="rPuerto" min="0"></label>
+            <button class="sec" id="btnRecursos">Aplicar recursos</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== COMUNICACIÓN ===================== -->
+    <section id="comunicacion" class="seccion">
+      <div class="encabezado">
+        <h1>Comunicación entre procesos</h1>
+        <p>Wait con valor 0 bloquea al proceso. Signal despierta al primero de la cola. Receive sobre un buzón vacío bloquea y Send lo despierta. Úselo con la simulación en pausa.</p>
+      </div>
+
+      <div class="herramientas">
+        <label>Proceso A <select class="selProceso" id="ipcA"></select></label>
+        <label>Proceso B <select class="selProceso" id="ipcB"></select></label>
+        <button id="btnDemoIpc">Demostración IPC</button>
+      </div>
+
+      <div class="dos parejo">
+        <div class="panel">
+          <h2>Semáforos</h2>
+          <div class="herramientas plano">
+            <label>Nombre <input id="semNombre" value="mutex"></label>
+            <label>Valor <input type="number" id="semValor" value="1" min="0"></label>
+            <button class="sec" id="btnCrearSem">Crear semáforo</button>
+          </div>
+          <div class="herramientas plano">
+            <label>Semáforo <select id="semSel"></select></label>
+            <button class="sec" id="btnWait">Wait (proceso A)</button>
+            <button class="sec" id="btnSignal">Signal</button>
+          </div>
+          <div class="semaforos" id="listaSemaforos"></div>
+        </div>
+        <div class="panel">
+          <h2>Mensajes</h2>
+          <div class="herramientas plano">
+            <label class="ancho">Mensaje <input id="msgTexto" value="dato listo"></label>
+            <button class="sec" id="btnEnviar">Enviar de A a B</button>
+            <button class="sec" id="btnRecibir">Recibir (proceso B)</button>
+          </div>
+          <table class="tabla" id="tablaBuzones">
+            <thead><tr><th>Proceso</th><th>Estado</th><th>En buzón</th><th>Último recibido</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SINCRONIZACIÓN ===================== -->
+    <section id="sincronizacion" class="seccion">
+      <div class="encabezado">
+        <h1>Sincronización</h1>
+        <p>Productor–consumidor con hilos reales de Java. Sin sincronización los hilos se pisan; con ReentrantLock y dos Semaphore el resultado es correcto.</p>
+      </div>
+
+      <div class="dos parejo">
+        <div class="panel">
+          <h2>Contador compartido</h2>
+          <div class="herramientas plano">
+            <label>Hilos <input type="number" id="cHilos" value="4" min="2" max="8"></label>
+            <label>Incrementos por hilo <input type="number" id="cRep" value="40" min="10" max="200" step="10"></label>
+          </div>
+          <div class="herramientas plano">
+            <button class="sec" data-contador="false">Sin sincronización</button>
+            <button data-contador="true">Con ReentrantLock</button>
+          </div>
+          <div class="resultado" id="resContador"><p class="vacio">Ejecute una de las dos variantes.</p></div>
+        </div>
+
+        <div class="panel">
+          <h2>Buffer acotado</h2>
+          <div class="herramientas plano">
+            <label>Casillas <input type="number" id="bCap" value="5" min="2" max="12"></label>
+            <label>Productores <input type="number" id="bProd" value="2" min="1" max="4"></label>
+            <label>Consumidores <input type="number" id="bCons" value="2" min="1" max="4"></label>
+            <label>Ítems c/u <input type="number" id="bItems" value="12" min="4" max="40"></label>
+          </div>
+          <div class="herramientas plano">
+            <button class="sec" data-buffer="false">Buffer sin sincronización</button>
+            <button data-buffer="true">Con semáforos y mutex</button>
+          </div>
+          <div class="buffer" id="celdasBuffer"></div>
+          <div class="resultado" id="resBuffer"></div>
+          <details><summary>Eventos del buffer</summary><pre id="eventosBuffer"></pre></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== MONITOREO ===================== -->
+    <section id="monitoreo" class="seccion">
+      <div class="encabezado">
+        <h1>Monitoreo</h1>
+        <p>Estado actual de cada PCB y el historial de transiciones entre estados.</p>
+      </div>
+      <div class="panel">
+        <h2>Tabla de procesos</h2>
+        <table class="tabla" id="tablaMonitoreo">
+          <thead><tr><th>PID</th><th>Nombre</th><th>Estado</th><th>Motivo</th><th>Prioridad</th><th>Restante</th><th>Espera</th><th>Páginas</th><th>Base</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="dos parejo">
+        <div class="panel">
+          <h2>Transiciones</h2>
+          <div class="desplazable">
+            <table class="tabla" id="tablaTransiciones">
+              <thead><tr><th>Tiempo</th><th>Proceso</th><th>Desde</th><th>Hacia</th><th>Causa</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Bitácora</h2>
+          <ol class="bitacora desplazable" id="bitacora"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== EXCEPCIONES ===================== -->
+    <section id="excepciones" class="seccion">
+      <div class="encabezado">
+        <h1>Excepciones</h1>
+        <p>La división ejecuta de verdad dividendo / divisor y captura ArithmeticException. El acceso pasa por el gestor de memoria y captura AccesoMemoriaInvalidoException. En modo fatal se liberan memoria y recursos.</p>
+      </div>
+
+      <div class="herramientas">
+        <label>Proceso <select class="selProceso" id="excProceso"></select></label>
+      </div>
+
+      <div class="dos parejo">
+        <div class="panel">
+          <h2>División</h2>
+          <div class="herramientas plano">
+            <label>Dividendo <input type="number" id="dividendo" value="10"></label>
+            <label>Divisor <input type="number" id="divisor" value="0"></label>
+          </div>
+          <label class="check"><input type="checkbox" id="recDiv"> Recuperar y continuar (no terminar)</label>
+          <button id="btnDividir">Ejecutar división</button>
+        </div>
+        <div class="panel">
+          <h2>Acceso a memoria</h2>
+          <div class="herramientas plano">
+            <label>Página lógica <input type="number" id="paginaLogica" value="0"></label>
+            <button class="sec" id="btnPaginaInvalida">Preparar página inválida</button>
+          </div>
+          <label class="check"><input type="checkbox" id="recAcc"> Recuperar y continuar (no terminar)</label>
+          <div class="herramientas plano">
+            <button id="btnAcceder">Acceder a memoria</button>
+            <button class="sec" id="btnAccesoValido">Acceso válido a la página 0</button>
+          </div>
+        </div>
+      </div>
+      <div class="resultado" id="resExcepcion" hidden></div>
+
+      <div class="panel">
+        <h2>Registro de excepciones</h2>
+        <table class="tabla" id="tablaExcepciones">
+          <thead><tr><th>Tiempo</th><th>Proceso</th><th>Tipo</th><th>Manejo</th><th>Detalle</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="vacio" id="sinExcepciones">Aún no se ha lanzado ninguna excepción.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog id="pcb">
+  <form method="dialog">
+    <h2 id="pcbTitulo">PCB</h2>
+    <dl id="pcbDatos"></dl>
+    <button>Cerrar</button>
+  </form>
+</dialog>
+
+<div class="avisos" id="avisos" aria-live="assertive"></div>
+<script src="app.js"></script>
+</body>
+</html>

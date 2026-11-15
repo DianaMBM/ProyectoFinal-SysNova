@@ -29,6 +29,20 @@
         "panel": "shared"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "Abrir interfaz web",
+      "type": "process",
+      "command": "cmd.exe",
+      "args": ["/c", "iniciar-web.bat"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
     }
   ]
 }
